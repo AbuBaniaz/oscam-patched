@@ -1,4 +1,4 @@
-name: build
+name: build oscam
 
 on:
   push:
@@ -11,25 +11,34 @@ on:
       master
     paths-ignore:
       - '.github/**'
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      sha:
+        required: false
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.sha }}
+        fetch-depth: 0
+        
+    - name: build libdvbcsa
+      run: |
+        git clone https://github.com/oe-mirrors/libdvbcsa.git
+        cd libdvbcsa
+        ./bootstrap
+        ./configure --enable-avx2
+        make
+        sudo make install
 
-      - name: build libdvbcsa
-        run: |
-          git clone https://github.com/oe-mirrors/libdvbcsa.git
-          cd libdvbcsa
-          ./bootstrap
-          ./configure --enable-avx2
-          make
-          sudo make install
-
-      - name: build oscam-emu
-        run: |
-          ./config.sh --enable all --disable WITH_SOFTCAM
-          make
+    - name: build oscam-emu
+      run: |
+        ./config.sh --enable all --disable WITH_SOFTCAM
+        make
